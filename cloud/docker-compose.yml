@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: exhausted
+      POSTGRES_PASSWORD: exhausted
+      POSTGRES_DB: exhausted
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exhausted -d exhausted"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: ingestor/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://exhausted:exhausted@db:5432/exhausted
+      VIDEO_DIR: /data/videos
+    volumes:
+      - video_data:/data/videos
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  video_data:
